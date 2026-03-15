@@ -1,76 +1,149 @@
-# MakineAI Plugin Template
+# MakineAI Eklenti Geliştirme Şablonu
 
-A template for creating MakineAI Launcher plugins.
+MakineAI Launcher için eklenti geliştirmek isteyenlere hazır başlangıç noktası.
 
-## Quick Start
+GitHub'da **"Use this template"** butonuna tıklayarak kendi eklentinizi bu şablondan oluşturabilirsiniz.
 
-1. **Use this template** — Click "Use this template" on GitHub
-2. **Edit manifest.json** — Set your plugin id, name, description
-3. **Write your plugin** — Edit `plugin.cpp`, add your logic
-4. **Build** — `cmake -B build -G Ninja && cmake --build build`
-5. **Package** — `python makine-pack.py ./build/release/`
-6. **Release** — Create a GitHub Release, attach the `.makine` file
-7. **Discover** — Add `makineai-plugin` topic to your repo
+---
 
-## Project Structure
+## Hızlı Başlangıç
 
+### 1. Şablondan Repo Oluşturun
+
+GitHub'da bu sayfanın sağ üstündeki yeşil **"Use this template"** butonuna tıklayın. Kendi hesabınızda yeni bir repo oluşturulacak.
+
+### 2. manifest.json Dosyasını Düzenleyin
+
+```json
+{
+    "id": "com.sizin-kullanici-adiniz.eklenti-adi",
+    "name": "Eklentinizin Adı",
+    "version": "0.1.0",
+    "entry": "eklenti-adi.dll",
+    ...
+}
 ```
-├── manifest.json    — Plugin metadata (id, name, version, entry DLL)
-├── plugin.cpp       — Plugin implementation (C ABI exports)
-├── CMakeLists.txt   — Build configuration
-└── include/         — (optional) Local copy of plugin API headers
-    └── makineai/plugin/
-        ├── plugin_api.h
-        └── plugin_types.h
+
+**Önemli alanlar:**
+| Alan | Açıklama | Örnek |
+|------|----------|-------|
+| `id` | Benzersiz kimlik | `com.ahmet.harita-eklentisi` |
+| `name` | Görünen isim | `Harita Eklentisi` |
+| `version` | Semantik versiyon | `0.1.0` |
+| `entry` | DLL dosya adı | `harita-eklentisi.dll` |
+| `apiVersion` | Plugin API sürümü (şimdilik `1`) | `1` |
+
+### 3. Kodunuzu Yazın
+
+`plugin.cpp` dosyasını açın. İçinde 5 zorunlu fonksiyon var — bunlar eklentinizin Launcher ile iletişim kurmasını sağlar:
+
+```cpp
+// Eklenti bilgilerini döndürür
+extern "C" MakineAiPluginInfo makineai_get_info(void);
+
+// Eklentiyi başlatır (dataPath: verilerinizi saklayacağınız dizin)
+extern "C" MakineAiError makineai_initialize(const char* dataPath);
+
+// Eklentiyi kapatır, kaynakları serbest bırakır
+extern "C" void makineai_shutdown(void);
+
+// Eklentinin hazır olup olmadığını döndürür
+extern "C" bool makineai_is_ready(void);
+
+// Son hata mesajını döndürür
+extern "C" const char* makineai_get_last_error(void);
 ```
 
-## Plugin API
+Bu fonksiyonların hepsini implement etmeniz **zorunludur**. Kendi mantığınızı `makineai_initialize` ve `makineai_shutdown` içine yazın.
 
-Every plugin DLL must export these 5 functions:
+### 4. Derleyin
 
-| Function | Signature | Purpose |
-|----------|-----------|---------|
-| `makineai_get_info` | `MakineAiPluginInfo (void)` | Return plugin metadata |
-| `makineai_initialize` | `MakineAiError (const char* dataPath)` | Initialize plugin |
-| `makineai_shutdown` | `void (void)` | Clean up resources |
-| `makineai_is_ready` | `bool (void)` | Check if plugin is ready |
-| `makineai_get_last_error` | `const char* (void)` | Get last error message |
-
-## Building
-
-Requirements: CMake 3.25+, MinGW GCC 13.1+ (or any C++23 compiler)
+**Gereksinimler:**
+- CMake 3.25 veya üstü
+- MinGW GCC 13.1+ (veya herhangi bir C++23 derleyici)
+- Ninja (opsiyonel ama önerilen)
 
 ```bash
 cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
 cmake --build build
 ```
 
-Output: `build/release/my-plugin.dll` + `build/release/manifest.json`
+Başarılı derleme sonrası `build/release/` dizininde DLL ve manifest.json dosyanız oluşur.
 
-## Packaging
+### 5. Paketleyin
 
-Install the packager: `pip install zstandard`
+`.makine` formatında paketlemek için:
 
 ```bash
+pip install zstandard
 python makine-pack.py ./build/release/
 ```
 
-Output: `com-github-username-my-plugin-0.1.0.makine`
+Bu komut şunları yapar:
+- manifest.json'u doğrular
+- Yasak dosya türlerini kontrol eder
+- zstd ile sıkıştırır (seviye 22, maksimum sıkıştırma)
+- `.makine` dosyası oluşturur
+- SHA-256 sağlama toplamını gösterir
 
-## Publishing
+### 6. Yayınlayın
 
-1. Create a GitHub Release (e.g., `v0.1.0`)
-2. Attach the `.makine` file as a release asset
-3. Add `makineai-plugin` topic to your repository
-4. Your plugin will appear in MakineAI Launcher's community section
+1. GitHub'da bir **Release** oluşturun (örn: `v0.1.0`)
+2. `.makine` dosyasını release'e **asset olarak** ekleyin
+3. Repo ayarlarında **Topics** kısmına `makineai-plugin` ekleyin
 
-## Getting Approved
+Bu kadar! Eklentiniz artık MakineAI Launcher'ın **Eklentiler** sayfasında görünecek.
 
-To get the "Approved" badge in the launcher:
-1. Keep your plugin open source
-2. Follow the [Plugin Guidelines](https://makineceviri.net/docs/plugin-guidelines)
-3. Submit for review at [MakineCeviri/makineai-plugins](https://github.com/MakineCeviri/makineai-plugins/issues/new)
+---
 
-## License
+## Proje Yapısı
 
-GPL-3.0 — See [LICENSE](LICENSE)
+```
+├── manifest.json              — Eklenti bilgileri (isim, versiyon, DLL adı)
+├── plugin.cpp                 — Ana kaynak dosya (5 zorunlu fonksiyon)
+├── CMakeLists.txt             — Derleme yapılandırması
+└── include/makineai/plugin/   — SDK başlık dosyaları (dokunmayın)
+    ├── plugin_api.h           — Fonksiyon tipleri
+    └── plugin_types.h         — Hata kodları ve yapılar
+```
+
+## Hata Kodları
+
+Eklentiniz şu hata kodlarını döndürebilir:
+
+| Kod | Anlamı |
+|-----|--------|
+| `MAKINEAI_OK` | Başarılı |
+| `MAKINEAI_ERR_INIT_FAILED` | Başlatma başarısız |
+| `MAKINEAI_ERR_NOT_READY` | Henüz hazır değil |
+| `MAKINEAI_ERR_INVALID_PARAM` | Geçersiz parametre |
+| `MAKINEAI_ERR_NOT_FOUND` | Bulunamadı |
+| `MAKINEAI_ERR_ACCESS_DENIED` | Erişim engellendi |
+| `MAKINEAI_ERR_UNSUPPORTED` | Desteklenmiyor |
+| `MAKINEAI_ERR_TIMEOUT` | Zaman aşımı |
+| `MAKINEAI_ERR_ENGINE_ERROR` | Motor hatası |
+
+## Sık Sorulan Sorular
+
+**Eklentim Launcher'da neden görünmüyor?**
+- Repo'nuza `makineai-plugin` topic'i eklediğinizden emin olun
+- GitHub API topic aramasının güncellenmesi birkaç dakika sürebilir
+
+**Hangi derleyiciyi kullanmalıyım?**
+- MinGW GCC 13.1+ önerilir (MakineAI Launcher bununla derlenir)
+- MSVC ile de derlenebilir ancak ABI uyumluluğu C ABI ile sağlanır
+
+**Eklentim kullanıcı verisi nereye kaydeder?**
+- `makineai_initialize(dataPath)` ile verilen dizine: `AppData/Local/MakineAI/plugin-data/<eklenti-id>/`
+
+**makine-pack.py aracını nereden bulurum?**
+- [MakineAI-Launcher/scripts/tools/makine-pack.py](https://github.com/MakineCeviri/MakineAI-Launcher/blob/main/scripts/tools/makine-pack.py)
+
+## Yardım ve İletişim
+
+- [MakineAI-Launcher Issues](https://github.com/MakineCeviri/MakineAI-Launcher/issues) — Hata bildirimi
+- [MakineAI-Plugins](https://github.com/MakineCeviri/MakineAI-Plugins) — Eklenti kayıt defteri
+
+## Lisans
+
+GPL-3.0
