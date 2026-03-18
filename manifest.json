@@ -13,5 +13,22 @@
     "capabilities": [],
     "features": ["Feature 1", "Feature 2"],
     "platforms": ["win64"],
-    "minLauncherVersion": "0.2.0"
+    "minLauncherVersion": "0.1.0",
+    "settings": [
+        {
+            "key": "exampleOption",
+            "label": "Örnek Ayar",
+            "type": "select",
+            "default": "auto",
+            "options": ["auto", "manual", "disabled"],
+            "description": "Bu ayar eklentinizin davranışını kontrol eder"
+        },
+        {
+            "key": "exampleToggle",
+            "label": "Bildirimler",
+            "type": "toggle",
+            "default": "true",
+            "description": "Bildirim gösterilsin mi?"
+        }
+    ]
 }

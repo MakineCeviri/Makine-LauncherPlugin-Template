@@ -24,18 +24,47 @@ GitHub'da bu sayfanın sağ üstündeki yeşil **"Use this template"** butonuna 
 }
 ```
 
-**Önemli alanlar:**
+**Zorunlu alanlar:**
+
 | Alan | Açıklama | Örnek |
 |------|----------|-------|
-| `id` | Benzersiz kimlik | `com.ahmet.harita-eklentisi` |
+| `id` | Benzersiz kimlik (reverse domain) | `com.ahmet.harita-eklentisi` |
 | `name` | Görünen isim | `Harita Eklentisi` |
 | `version` | Semantik versiyon | `0.1.0` |
 | `entry` | DLL dosya adı | `harita-eklentisi.dll` |
 | `apiVersion` | Plugin API sürümü (şimdilik `1`) | `1` |
 
+**Opsiyonel alanlar:**
+
+| Alan | Açıklama | Örnek |
+|------|----------|-------|
+| `category` | Eklenti kategorisi (aşağıya bakın) | `"translation"` |
+| `description` | Kısa açıklama | `"Harita üzerinde çeviri"` |
+| `author` | Geliştirici adı | `"Ahmet Yılmaz"` |
+| `license` | Lisans | `"GPL-3.0"` |
+| `homepage` | Proje sayfası | `"https://github.com/..."` |
+| `capabilities` | Özel yetenekler listesi | `["ocr", "overlay"]` |
+| `features` | Kullanıcıya gösterilecek özellikler | `["OCR Desteği"]` |
+| `platforms` | Desteklenen platformlar | `["win64"]` |
+| `minLauncherVersion` | Gereken minimum Launcher sürümü | `"0.1.0"` |
+| `settings` | Kullanıcı ayarları tanımları | Aşağıya bakın |
+
+**Kategoriler:**
+
+| Değer | Açıklama |
+|-------|----------|
+| `translation` | Çeviri motorları |
+| `accessibility` | Erişilebilirlik (OCR, overlay vb.) |
+| `hook` | Oyun yakalama (hook) |
+| `other` | Diğer |
+
 ### 3. Kodunuzu Yazın
 
-`plugin.cpp` dosyasını açın. İçinde 5 zorunlu fonksiyon var — bunlar eklentinizin Launcher ile iletişim kurmasını sağlar:
+`plugin.cpp` dosyasını açın. İçinde **5 zorunlu** ve **4 opsiyonel** fonksiyon var.
+
+#### Zorunlu Fonksiyonlar (5)
+
+Bunlar eklentinizin Launcher ile iletişim kurmasını sağlar — **hepsini implement etmeniz zorunludur:**
 
 ```cpp
 // Eklenti bilgilerini döndürür
@@ -54,7 +83,31 @@ extern "C" bool makineai_is_ready(void);
 extern "C" const char* makineai_get_last_error(void);
 ```
 
-Bu fonksiyonların hepsini implement etmeniz **zorunludur**. Kendi mantığınızı `makineai_initialize` ve `makineai_shutdown` içine yazın.
+#### Opsiyonel: Ayar Fonksiyonları (2)
+
+Manifest'inizde `"settings"` dizisi tanımlıyorsanız, bu fonksiyonları da implement edin. Launcher kullanıcı arayüzünden ayar okuma/yazma yapabilir:
+
+```cpp
+// Ayar değerini döndürür (key = manifest settings[].key)
+extern "C" const char* makineai_get_setting(const char* key);
+
+// Ayar değerini günceller (Launcher UI'dan çağrılır)
+extern "C" void makineai_set_setting(const char* key, const char* value);
+```
+
+#### Opsiyonel: OCR + Çeviri Fonksiyonları (2)
+
+Erişilebilirlik (accessibility) eklentileri için — ekran yakalama, OCR ve çeviri:
+
+```cpp
+// Belirtilen ekran bölgesini yakala, OCR uygula, çevir, sonucu döndür
+extern "C" const char* makineai_capture_ocr_translate(void* hwnd, int x, int y, int w, int h);
+
+// Son yakalamadaki ham OCR metnini döndür (çeviri öncesi)
+extern "C" const char* makineai_get_last_ocr_text(void);
+```
+
+> **Not:** `plugin.cpp` dosyasında opsiyonel fonksiyonlar yorum bloğu içinde hazır bulunmaktadır. İhtiyacınız olanların yorumunu kaldırın.
 
 ### 4. Derleyin
 
@@ -80,11 +133,18 @@ python makine-pack.py ./build/release/
 ```
 
 Bu komut şunları yapar:
-- manifest.json'u doğrular
-- Yasak dosya türlerini kontrol eder
+- manifest.json'u doğrular (zorunlu alanlar: `id`, `name`, `version`, `apiVersion`, `entry`)
+- Yasak dosya türlerini kontrol eder (`.exe`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.msi`, `.js`)
 - zstd ile sıkıştırır (seviye 22, maksimum sıkıştırma)
-- `.makine` dosyası oluşturur
+- `.makine` dosyası oluşturur (MKPK v2 formatı)
 - SHA-256 sağlama toplamını gösterir
+
+**Opsiyonlar:**
+
+```bash
+python makine-pack.py ./build/release/ --output my-plugin-1.0.0.makine
+python makine-pack.py ./build/release/ --level 19  # daha hızlı, biraz daha büyük
+```
 
 ### 6. Yayınlayın
 
@@ -99,17 +159,57 @@ Bu kadar! Eklentiniz artık MakineAI Launcher'ın **Eklentiler** sayfasında gö
 ## Proje Yapısı
 
 ```
-├── manifest.json              — Eklenti bilgileri (isim, versiyon, DLL adı)
-├── plugin.cpp                 — Ana kaynak dosya (5 zorunlu fonksiyon)
+├── manifest.json              — Eklenti bilgileri (isim, versiyon, DLL adı, ayarlar)
+├── plugin.cpp                 — Ana kaynak dosya (5 zorunlu + 4 opsiyonel fonksiyon)
 ├── CMakeLists.txt             — Derleme yapılandırması
+├── makine-pack.py             — .makine paketleme aracı
 └── include/makineai/plugin/   — SDK başlık dosyaları (dokunmayın)
-    ├── plugin_api.h           — Fonksiyon tipleri
-    └── plugin_types.h         — Hata kodları ve yapılar
+    ├── plugin_api.h           — Fonksiyon tipleri (typedef'ler)
+    └── plugin_types.h         — Hata kodları, yapılar ve kategoriler
 ```
+
+## manifest.json — Ayarlar (Settings)
+
+Eklentinizin kullanıcı tarafından değiştirilebilir ayarları varsa, `"settings"` dizisine tanımlayın. Launcher bu bilgiyi okuyarak otomatik bir ayar arayüzü oluşturur:
+
+```json
+{
+    "settings": [
+        {
+            "key": "language",
+            "label": "Hedef Dil",
+            "type": "select",
+            "default": "tr",
+            "options": ["tr", "en", "de", "fr"],
+            "description": "OCR sonuçlarının çevrileceği dil"
+        },
+        {
+            "key": "notifications",
+            "label": "Bildirimler",
+            "type": "toggle",
+            "default": "true",
+            "description": "Çeviri tamamlandığında bildirim göster"
+        }
+    ]
+}
+```
+
+**Setting alanları:**
+
+| Alan | Zorunlu | Açıklama |
+|------|---------|----------|
+| `key` | Evet | Benzersiz ayar anahtarı |
+| `label` | Evet | Kullanıcıya gösterilecek etiket |
+| `type` | Evet | `"select"` veya `"toggle"` |
+| `default` | Evet | Varsayılan değer |
+| `options` | `select` için | Seçenekler listesi |
+| `description` | Hayır | Açıklama metni |
+
+> **Önemli:** `"settings"` tanımladıysanız, `plugin.cpp`'de `makineai_get_setting` ve `makineai_set_setting` fonksiyonlarını da implement edin. Aksi halde Launcher ayar arayüzünü gösterir ama değerler okunamaz/yazılamaz.
 
 ## Hata Kodları
 
-Eklentiniz şu hata kodlarını döndürebilir:
+Eklentiniz şu hata kodlarını döndürebilir (`MakineAiError` enum):
 
 | Kod | Anlamı |
 |-----|--------|
@@ -136,8 +236,11 @@ Eklentiniz şu hata kodlarını döndürebilir:
 **Eklentim kullanıcı verisi nereye kaydeder?**
 - `makineai_initialize(dataPath)` ile verilen dizine: `AppData/Local/MakineAI/plugin-data/<eklenti-id>/`
 
-**makine-pack.py aracını nereden bulurum?**
-- `makine-pack.py` aracı bu şablon deposunda (`MakineAI-Plugin-Template`) bulunmaktadır. Doğrudan bu repo'nun kök dizinindeki `makine-pack.py` dosyasını kullanın.
+**Opsiyonel fonksiyonları implement etmek zorunda mıyım?**
+- Hayır. Sadece 5 zorunlu fonksiyon yeterlidir. Ayar ve OCR fonksiyonları ihtiyacınız varsa ekleyin.
+
+**Settings tanımladım ama Launcher'da değerler değişmiyor?**
+- `makineai_get_setting` ve `makineai_set_setting` fonksiyonlarını DLL'de export ettiğinizden emin olun.
 
 ## Yardım ve İletişim
 
