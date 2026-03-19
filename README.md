@@ -1,6 +1,6 @@
 # Makine Launcher Eklenti Geliştirme Şablonu
 
-Makine Launcher için eklenti geliştirmek isteyenlere hazır başlangıç noktası.
+Açık kaynak kodlu **[Makine Launcher](https://github.com/MakineCeviri/Makine-Launcher)** uygulaması için eklenti (plugin) geliştirme şablonudur. Makine Launcher, Türkçe oyun çeviri paketlerini yöneten bir masaüstü uygulamasıdır ve bu şablon sayesinde topluluk geliştiricileri kendi eklentilerini oluşturabilir.
 
 GitHub'da **"Use this template"** butonuna tıklayarak kendi eklentinizi bu şablondan oluşturabilirsiniz.
 
