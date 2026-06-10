@@ -1,7 +1,14 @@
 # Build
 build/
 cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
 CMakeUserPresets.json
+cmake_install.cmake
+compile_commands.json
+.ninja_*
+*.ninja
+Makefile
 
 # IDE
 .vs/
@@ -13,6 +20,8 @@ CMakeUserPresets.json
 # Compiled
 *.obj
 *.o
+*.a
+*.exe
 *.dll
 *.lib
 *.exp
@@ -22,6 +31,16 @@ CMakeUserPresets.json
 # Packages
 *.makine
 
+# Logs
+*.log
+
 # OS
 Thumbs.db
 .DS_Store
+Desktop.ini
+
+# Cache
+.cache/
+
+# Claude
+.claude/worktrees/
