@@ -29,7 +29,7 @@ Makefile
 *.ilk
 
 # Packages
-*.makine
+*.mkplugin
 
 # Logs
 *.log
@@ -41,6 +41,7 @@ Desktop.ini
 
 # Cache
 .cache/
+__pycache__/
 
 # Claude
 .claude/worktrees/

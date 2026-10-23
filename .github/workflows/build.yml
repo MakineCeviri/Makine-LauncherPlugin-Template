@@ -1,0 +1,36 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: "3.12"
+
+      - name: Install the packer's dependency
+        run: python -m pip install zstandard
+
+      # No -G: CMake picks the newest Visual Studio on the runner (MSVC, x64), so
+      # no developer-prompt setup and no Ninja install is needed.
+      - name: Configure
+        run: cmake -B build -A x64 "-DPython3_EXECUTABLE=${{ steps.python.outputs.python-path }}"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Pack
+        run: cmake --build build --config Release --target pack
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mkplugin
+          path: build/*.mkplugin
+          if-no-files-found: error

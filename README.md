@@ -1,252 +1,136 @@
-# Makine Launcher Eklenti Geliştirme Şablonu
+# Makine Eklenti Şablonu
 
-Açık kaynak kodlu **[Makine Launcher](https://github.com/MakineCeviri/Makine-Launcher)** uygulaması için eklenti (plugin) geliştirme şablonudur. Makine Launcher, Türkçe oyun çeviri paketlerini yöneten bir masaüstü uygulamasıdır ve bu şablon sayesinde topluluk geliştiricileri kendi eklentilerini oluşturabilir.
+[Makine Launcher](https://github.com/MakineCeviri/Makine-Launcher) için eklenti (plugin ABI 2) başlangıç deposu.
 
-GitHub'da **"Use this template"** butonuna tıklayarak kendi eklentinizi bu şablondan oluşturabilirsiniz.
+Bir Makine eklentisi, 64 bit bir Windows DLL'i ile bir `manifest.json` dosyasından oluşur ve `.mkplugin` paketi olarak dağıtılır. Makine eklenti kodunu kendi içine yüklemez: her etkin eklenti ayrı bir `makine-plugin-host.exe` sürecinde çalışır, böylece çöken ya da donan bir eklenti yalnızca kendini durdurur.
 
----
-
-## Hızlı Başlangıç
-
-### 1. Şablondan Repo Oluşturun
-
-GitHub'da bu sayfanın sağ üstündeki yeşil **"Use this template"** butonuna tıklayın. Kendi hesabınızda yeni bir repo oluşturulacak.
-
-### 2. manifest.json Dosyasını Düzenleyin
-
-```json
-{
-    "id": "com.sizin-kullanici-adiniz.eklenti-adi",
-    "name": "Eklentinizin Adı",
-    "version": "0.1.0",
-    "entry": "eklenti-adi.dll",
-    ...
-}
-```
-
-**Zorunlu alanlar:**
-
-| Alan | Açıklama | Örnek |
-|------|----------|-------|
-| `id` | Benzersiz kimlik (reverse domain) | `com.ahmet.harita-eklentisi` |
-| `name` | Görünen isim | `Harita Eklentisi` |
-| `version` | Semantik versiyon | `0.1.0` |
-| `entry` | DLL dosya adı | `harita-eklentisi.dll` |
-| `apiVersion` | Plugin API sürümü (şimdilik `1`) | `1` |
-
-**Opsiyonel alanlar:**
-
-| Alan | Açıklama | Örnek |
-|------|----------|-------|
-| `category` | Eklenti kategorisi (aşağıya bakın) | `"translation"` |
-| `description` | Kısa açıklama | `"Harita üzerinde çeviri"` |
-| `author` | Geliştirici adı | `"Ahmet Yılmaz"` |
-| `license` | Lisans | `"GPL-3.0"` |
-| `homepage` | Proje sayfası | `"https://github.com/..."` |
-| `capabilities` | Özel yetenekler listesi | `["ocr", "overlay"]` |
-| `features` | Kullanıcıya gösterilecek özellikler | `["OCR Desteği"]` |
-| `platforms` | Desteklenen platformlar | `["win64"]` |
-| `minLauncherVersion` | Gereken minimum Launcher sürümü | `"0.1.0"` |
-| `settings` | Kullanıcı ayarları tanımları | Aşağıya bakın |
-
-**Kategoriler:**
-
-| Değer | Açıklama |
-|-------|----------|
-| `translation` | Çeviri motorları |
-| `accessibility` | Erişilebilirlik (OCR, overlay vb.) |
-| `hook` | Oyun yakalama (hook) |
-| `other` | Diğer |
-
-### 3. Kodunuzu Yazın
-
-`plugin.cpp` dosyasını açın. İçinde **5 zorunlu** ve **4 opsiyonel** fonksiyon var.
-
-#### Zorunlu Fonksiyonlar (5)
-
-Bunlar eklentinizin Launcher ile iletişim kurmasını sağlar — **hepsini implement etmeniz zorunludur:**
-
-```cpp
-// Eklenti bilgilerini döndürür
-extern "C" MakinePluginInfo makine_get_info(void);
-
-// Eklentiyi başlatır (dataPath: verilerinizi saklayacağınız dizin)
-extern "C" MakineError makine_initialize(const char* dataPath);
-
-// Eklentiyi kapatır, kaynakları serbest bırakır
-extern "C" void makine_shutdown(void);
-
-// Eklentinin hazır olup olmadığını döndürür
-extern "C" bool makine_is_ready(void);
-
-// Son hata mesajını döndürür
-extern "C" const char* makine_get_last_error(void);
-```
-
-#### Opsiyonel: Ayar Fonksiyonları (2)
-
-Manifest'inizde `"settings"` dizisi tanımlıyorsanız, bu fonksiyonları da implement edin. Launcher kullanıcı arayüzünden ayar okuma/yazma yapabilir:
-
-```cpp
-// Ayar değerini döndürür (key = manifest settings[].key)
-extern "C" const char* makine_get_setting(const char* key);
-
-// Ayar değerini günceller (Launcher UI'dan çağrılır)
-extern "C" void makine_set_setting(const char* key, const char* value);
-```
-
-#### Opsiyonel: OCR + Çeviri Fonksiyonları (2)
-
-Erişilebilirlik (accessibility) eklentileri için — ekran yakalama, OCR ve çeviri:
-
-```cpp
-// Belirtilen ekran bölgesini yakala, OCR uygula, çevir, sonucu döndür
-extern "C" const char* makine_capture_ocr_translate(void* hwnd, int x, int y, int w, int h);
-
-// Son yakalamadaki ham OCR metnini döndür (çeviri öncesi)
-extern "C" const char* makine_get_last_ocr_text(void);
-```
-
-> **Not:** `plugin.cpp` dosyasında opsiyonel fonksiyonlar yorum bloğu içinde hazır bulunmaktadır. İhtiyacınız olanların yorumunu kaldırın.
-
-### 4. Derleyin
-
-**Gereksinimler:**
-- CMake 3.25 veya üstü
-- MinGW GCC 13.1+ (veya herhangi bir C++23 derleyici)
-- Ninja (opsiyonel ama önerilen)
-
-```bash
-cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
-cmake --build build
-```
-
-Başarılı derleme sonrası `build/release/` dizininde DLL ve manifest.json dosyanız oluşur.
-
-### 5. Paketleyin
-
-`.makine` formatında paketlemek için:
-
-```bash
-pip install zstandard
-python makine-pack.py ./build/release/
-```
-
-Bu komut şunları yapar:
-- manifest.json'u doğrular (zorunlu alanlar: `id`, `name`, `version`, `apiVersion`, `entry`)
-- Yasak dosya türlerini kontrol eder (`.exe`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.msi`, `.js`)
-- zstd ile sıkıştırır (seviye 22, maksimum sıkıştırma)
-- `.makine` dosyası oluşturur (MKPK v2 formatı)
-- SHA-256 sağlama toplamını gösterir
-
-**Opsiyonlar:**
-
-```bash
-python makine-pack.py ./build/release/ --output my-plugin-1.0.0.makine
-python makine-pack.py ./build/release/ --level 19  # daha hızlı, biraz daha büyük
-```
-
-### 6. Yayınlayın
-
-1. GitHub'da bir **Release** oluşturun (örn: `v0.1.0`)
-2. `.makine` dosyasını release'e **asset olarak** ekleyin
-3. Repo ayarlarında **Topics** kısmına `makine-plugin` ekleyin
-
-Bu kadar! Eklentiniz artık Makine Launcher'ın **Eklentiler** sayfasında görünecek.
+Manifest alanlarının, host API'sinin ve olayların tamamı **[geliştirici belgelerinde](https://makineceviri.org/docs/plugin-api)** (Türkçe) ve **[eklenti rehberinde](https://github.com/MakineCeviri/Makine-Launcher/blob/dev/docs/plugins/README.md)** (İngilizce). Bu dosya yalnızca bir özet.
 
 ---
 
-## Proje Yapısı
+## Hızlı başlangıç
+
+1. **Şablonu kullanın.** GitHub'da **Use this template** ile kendi deponuzu oluşturun.
+2. **`manifest.json` dosyasını düzenleyin.** En azından `id` (ters DNS, küçük harf: `com.adiniz.eklenti`), `name`, `publisher` ve `homepage` alanlarını değiştirin. DLL'in adı ve paketteki yeri `entry` alanından gelir (`bin/my-plugin.dll`); CMake bu alanı okur.
+3. **Derleyin.** Gerekenler: CMake 3.25+, MinGW-w64 GCC 13+ ya da Visual Studio 2022+ (MSVC). İlk yapılandırmada CMake, JSON kütüphanesini ([nlohmann/json](https://github.com/nlohmann/json) 3.12.0, sabit sürüm ve SHA-256 doğrulamalı) indirir; bunun için internet bağlantısı gerekir.
+
+   ```bash
+   cmake -B build -G Ninja      # MSVC için: cmake -B build -A x64
+   cmake --build build          # MSVC için: cmake --build build --config Release
+   ```
+
+   Sonuç `build/package/` klasöründedir; Makine'nin kurduğu eklentinin aynısı:
+
+   ```
+   build/package/
+   ├── manifest.json
+   └── bin/my-plugin.dll
+   ```
+
+4. **Makine olmadan çalıştırın.** `tools/plugin_dev.py`, eklentiyi gerçek `makine-plugin-host.exe` içinde çalıştırır, launcher'ın yerine geçerek host çağrılarını yanıtlar ve eklentinin söylediği her şeyi yazdırır:
+
+   ```bash
+   python tools/plugin_dev.py build/package --host "C:\Makine\makine-plugin-host.exe" --invoke hello
+
+   export MAKINE_PLUGIN_HOST="C:\Makine\makine-plugin-host.exe"   # her seferinde --host yazmamak için
+   python tools/plugin_dev.py build/package --invoke hello \
+       --event settings.changed '{"key":"greeting","value":"Selam!"}' --invoke hello
+   ```
+
+   `--invoke` ve `--event` komut satırındaki sırayla çalışır: ikinci örnek önce selam verir, sonra ayarı değiştirir, sonra yeni metinle bir kez daha selam verir. İkisini de vermezseniz komutları stdin'den okur: `hello`, `!settings.changed {"key":"showUptime","value":false}`, `quit`. Başlangıç ayarlarını `--set interval=5` ile değiştirebilirsiniz.
+
+   Host'u `--host` ya da `MAKINE_PLUGIN_HOST` ile göstermek zorunludur. Eklentinin `dataDir` klasörü bu modda `build/package/.dev-data/` olur (pakete girmez).
+
+5. **Paketleyin.**
+
+   ```bash
+   pip install zstandard
+   cmake --build build --target pack     # ya da: python tools/plugin_registry.py pack build/package
+   ```
+
+   Çıktı: `build/<id>-<version>.mkplugin`. Paketleyici manifest'i denetler, betik ve yükleyici dosyalarını (`.bat`, `.ps1`, `.msi`, `.js`…) reddeder.
+
+6. **Makine'de deneyin.** Ayarlar → Eklentiler → **Geliştirici modu**'nu açın → **Dosyadan yükle** ile `.mkplugin` dosyasını seçin. Kayıt defterinden gelmeyen eklentiler *Doğrulanmamış* olarak işaretlenir.
+
+Her push ve pull request'te `.github/workflows/build.yml` eklentiyi MSVC ile derler, paketler ve `.mkplugin` dosyasını iş akışı çıktısı (artifact) olarak yükler.
+
+## `makine-plugin-host.exe` nerede?
+
+Makine'nin taşınabilir ZIP'inde (0.2.0 ve sonrası) `Makine-Launcher.exe`'nin yanında gelir. ZIP'i bir klasöre açıp `--host` ile o dosyayı gösterin. Makine-Launcher'ı kaynaktan derliyorsanız `just dev` sonrası `build/dev/makine-plugin-host.exe` konumundadır.
+
+## Depo yapısı
 
 ```
-├── manifest.json              — Eklenti bilgileri (isim, versiyon, DLL adı, ayarlar)
-├── plugin.cpp                 — Ana kaynak dosya (5 zorunlu + 4 opsiyonel fonksiyon)
-├── CMakeLists.txt             — Derleme yapılandırması
-├── makine-pack.py             — .makine paketleme aracı
-└── include/makine/plugin/     — SDK başlık dosyaları (dokunmayın)
-    ├── plugin_api.h           — Fonksiyon tipleri (typedef'ler)
-    └── plugin_types.h         — Hata kodları, yapılar ve kategoriler
+manifest.json               kimlik, sürüm, izinler, ayarlar, eylemler, olaylar
+plugin.cpp                  örnek eklenti (sdk.hpp üzerine)
+CMakeLists.txt              nlohmann/json'u indirir, DLL'i statik C++ çalışma zamanıyla derler, build/package/ düzenini kurar, pack hedefi
+include/makine/plugin/      abi.h + sdk.hpp: Makine-Launcher'dan kopya, düzenlemeyin
+tools/plugin_dev.py         eklentiyi launcher olmadan gerçek host'ta çalıştırır
+tools/plugin_registry.py    manifest denetimi ve .mkplugin paketleme
+.github/workflows/build.yml derleme + paketleme (CI)
 ```
 
-## manifest.json — Ayarlar (Settings)
+`include/` ve `tools/` altındaki dosyalar Makine-Launcher deposundan kopyadır (`core/include/makine/plugin/`, `scripts/`); her dosyanın başında kaynağı yazar. Güncellemek için yeni sürümü üzerine kopyalayıp bu ilk satırı koruyun.
 
-Eklentinizin kullanıcı tarafından değiştirilebilir ayarları varsa, `"settings"` dizisine tanımlayın. Launcher bu bilgiyi okuyarak otomatik bir ayar arayüzü oluşturur:
+## Örnek eklenti ne gösteriyor?
 
-```json
-{
-    "settings": [
-        {
-            "key": "language",
-            "label": "Hedef Dil",
-            "type": "select",
-            "default": "tr",
-            "options": ["tr", "en", "de", "fr"],
-            "description": "OCR sonuçlarının çevrileceği dil"
-        },
-        {
-            "key": "notifications",
-            "label": "Bildirimler",
-            "type": "toggle",
-            "default": "true",
-            "description": "Çeviri tamamlandığında bildirim göster"
-        }
-    ]
-}
-```
+`plugin.cpp`, çoğu eklentinin ihtiyaç duyduğu parçaları tek dosyada gösterir:
 
-**Setting alanları:**
+- **Ayarlar:** `initialize` içinde init JSON'dan okunur, `settings.changed` olayıyla güncel tutulur.
+- **Eylem:** eklenti sayfasındaki *Selam ver* düğmesi `invoke("hello")` çağırır; eklenti `ui.notify` ile bir bildirim gösterir.
+- **Durum satırı:** `initialize` içinde başlatılan, `shutdown` içinde durdurulup beklenen (join) bir işçi thread'i `ui.setStatus` ile eklenti adının altındaki satırı günceller.
+- **Dosya:** `dataDir` altına `hello.log` yazar; UTF-8 yol `MultiByteToWideChar` ile UTF-16'ya çevrilip geniş (wide) Win32 API'siyle açılır.
 
-| Alan | Zorunlu | Açıklama |
-|------|---------|----------|
-| `key` | Evet | Benzersiz ayar anahtarı |
-| `label` | Evet | Kullanıcıya gösterilecek etiket |
-| `type` | Evet | `"select"` veya `"toggle"` |
-| `default` | Evet | Varsayılan değer |
-| `options` | `select` için | Seçenekler listesi |
-| `description` | Hayır | Açıklama metni |
+JSON için [nlohmann/json](https://github.com/nlohmann/json) kullanılır. ABI yalnızca metin gördüğü için başka bir kütüphaneyle de değiştirebilirsiniz. Ayrıştırma hatası gibi bir exception `initialize`, `invoke` ya da `onEvent` içinde fırlatılırsa `sdk.hpp` onu yakalar. Kendi thread'inizde yakalanmayan bir exception ise süreci sonlandırır.
 
-> **Önemli:** `"settings"` tanımladıysanız, `plugin.cpp`'de `makine_get_setting` ve `makine_set_setting` fonksiyonlarını da implement edin. Aksi halde Launcher ayar arayüzünü gösterir ama değerler okunamaz/yazılamaz.
+## Uyulması gereken kurallar
 
-## Hata Kodları
+| Kural | Neden |
+|-------|-------|
+| `initialize`, `invoke`, `onEvent`, `shutdown` tek bir host thread'inde, sırayla çalışır | Aralarında kilit gerekmez. Uzun ya da sürekli iş kendi thread'inizde yapılır. |
+| `host()` fonksiyonları her thread'den çağrılabilir; `call` Makine yanıt verene kadar bekler | Kullanıcıyı bekleyen çağrıları (`overlay.pickRegion`, `games.requestAttach`) işçi thread'inden yapın. |
+| `DllMain` ya da giriş fonksiyonunda iş yapmayın | `initialize` içinde başlayın; thread'leri `shutdown` içinde durdurun (3 sn süre, sonra süreç sonlandırılır). |
+| `stdout` hiçbir yere gitmez; `stderr` satırları eklenti günlüğünde görünür | `stdout` protokol kanalıdır. |
+| JSON'daki yollar UTF-8'dir | `MultiByteToWideChar(CP_UTF8, …)` + geniş API kullanın; dar `fopen` Türkçe kullanıcı adlarında (`Şükrü`) bozulur. |
+| DLL'ler yalnızca eklenti klasöründe, launcher klasöründe ve System32'de aranır | C++ çalışma zamanını statik bağlayın (bu şablonun CMake'i öyle yapar) ya da gereken DLL'leri eklenti klasörüne koyun. |
+| Exception ABI sınırını geçemez | `sdk.hpp` yakalar ve `MAKINE_E_FAILED` döndürür. |
 
-Eklentiniz şu hata kodlarını döndürebilir (`MakineError` enum):
+Süreler: `initialize` 15 sn, `invoke` 30 sn (eylemler 120 sn). Beş dakika içinde üç çökme, eklentiyi kullanıcı yeniden başlatana kadar durdurur.
 
-| Kod | Anlamı |
-|-----|--------|
-| `MAKINE_OK` | Başarılı |
-| `MAKINE_ERR_INIT_FAILED` | Başlatma başarısız |
-| `MAKINE_ERR_NOT_READY` | Henüz hazır değil |
-| `MAKINE_ERR_INVALID_PARAM` | Geçersiz parametre |
-| `MAKINE_ERR_NOT_FOUND` | Bulunamadı |
-| `MAKINE_ERR_ACCESS_DENIED` | Erişim engellendi |
-| `MAKINE_ERR_UNSUPPORTED` | Desteklenmiyor |
-| `MAKINE_ERR_TIMEOUT` | Zaman aşımı |
-| `MAKINE_ERR_ENGINE_ERROR` | Motor hatası |
+## Manifest (özet)
 
-## Sık Sorulan Sorular
+| Alan | Kural |
+|------|-------|
+| `schema`, `abi` | `2` |
+| `id` | ters DNS, küçük harf (`com.adiniz.eklenti`); kurulum klasörünün adı da budur |
+| `version`, `minLauncher` | semver (`1.2.0`, `0.2.0-beta`) |
+| `entry` | DLL'in paket içindeki yolu, `..` olmadan |
+| `publisher` | zorunlu |
+| `capabilities` | her biri `{id, reason}`; Türkçe `reason` kurulumda kullanıcıya gösterilir. Kimlikler: `network`, `screen-capture`, `overlay`, `game-files-read`, `game-files-write`, `process-inject`. Yalnızca gerçekten gerekenleri isteyin; kullanıcı onaylamadan eklenti çalışmaz. |
+| `contributes.settings` | Makine'nin çizdiği ayarlar: `toggle`, `select`, `text`, `secret`, `number`, `path` |
+| `contributes.actions` | eklenti sayfasındaki düğmeler; basılınca `invoke(id)` çağrılır |
+| `contributes.events` | eklentinin alacağı olaylar: `game.started`, `game.stopped`, `translation.installed`, `translation.uninstalled`, `settings.changed` |
 
-**Eklentim Launcher'da neden görünmüyor?**
-- Repo'nuza `makine-plugin` topic'i eklediğinizden emin olun
-- GitHub API topic aramasının güncellenmesi birkaç dakika sürebilir
+## Host API (özet)
 
-**Hangi derleyiciyi kullanmalıyım?**
-- MinGW GCC 13.1+ önerilir (Makine Launcher bununla derlenir)
-- MSVC ile de derlenebilir ancak ABI uyumluluğu C ABI ile sağlanır
+`host().call(method, paramsJson)`: `settings.get` · `settings.all` · `settings.set` · `ui.notify` · `ui.setStatus` · `games.running` · `games.list` · `games.requestAttach` · `overlay.pickRegion` · `overlay.show` · `overlay.hide`. Bazıları bir izin ister (`games.list` → `game-files-read`, `overlay.*` → `overlay`, `games.requestAttach` → `process-inject`). Parametreler ve dönüş değerleri rehberde.
 
-**Eklentim kullanıcı verisi nereye kaydeder?**
-- `makine_initialize(dataPath)` ile verilen dizine: `AppData/Local/Makine/plugin-data/<eklenti-id>/`
+## Yayınlama
 
-**Opsiyonel fonksiyonları implement etmek zorunda mıyım?**
-- Hayır. Sadece 5 zorunlu fonksiyon yeterlidir. Ayar ve OCR fonksiyonları ihtiyacınız varsa ekleyin.
+Makine, eklenti listesini imzalı kayıt defterinden alır; imzası ya da paket SHA-256'sı tutmayan hiçbir şeyi kurmaz. Eklentinizin listede yer alması için:
 
-**Settings tanımladım ama Launcher'da değerler değişmiyor?**
-- `makine_get_setting` ve `makine_set_setting` fonksiyonlarını DLL'de export ettiğinizden emin olun.
+1. Kaynak kodunuzu herkese açık bir depoda tutun ve bir sürüm etiketi (`v0.1.0`) oluşturun.
+2. [MakineCeviri/Makine-LauncherPlugins](https://github.com/MakineCeviri/Makine-LauncherPlugins) deposuna depo adresinizi ve sürüm etiketini içeren bir pull request açın.
+3. Makine ekibi kodu inceler, eklentiyi kendisi derleyip paketler, kayıt defterine ekler ve imzalar.
 
-## Yardım ve İletişim
+Kayıt defterinde olmayan eklentiler yalnızca geliştirici modunda, dosyadan kurulabilir.
 
-- [Makine-Launcher Issues](https://github.com/MakineCeviri/Makine-Launcher/issues) — Hata bildirimi
-- [Makine-Plugins](https://github.com/MakineCeviri/Makine-Plugins) — Eklenti kayıt defteri
+## Yardım
+
+- [Geliştirici belgeleri](https://makineceviri.org/docs/plugin-api)
+- [Eklenti rehberi](https://github.com/MakineCeviri/Makine-Launcher/blob/dev/docs/plugins/README.md)
+- [Makine-Launcher Issues](https://github.com/MakineCeviri/Makine-Launcher/issues)
 
 ## Lisans
 
-GPL-3.0
+[LICENSE](LICENSE) dosyasına bakın.
